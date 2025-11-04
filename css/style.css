@@ -1,0 +1,219 @@
+/* 1. Thiết lập cơ bản cho trang */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden; /* Ngăn trang cuộn */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  box-sizing: border-box; 
+}
+
+*, *:before, *:after {
+  box-sizing: inherit;
+}
+
+/* 2. Sử dụng Flexbox cho layout chính */
+#wrap {
+  display: flex;
+  width: 100vw; /* 100% chiều rộng viewport */
+  height: 100vh; /* 100% chiều cao viewport */
+}
+
+/* 3. Cột trái (thanh công cụ) */
+#leftCol {
+  width: 33.33%;
+  flex-shrink: 0; /* Không co lại khi màn hình hẹp */
+  height: 100%; /* Cao tối đa */
+  overflow-y: auto; /* Cho phép cuộn nội dung bên trong */
+  padding: 15px; 
+  transition: width 0.3s ease, padding 0.3s ease; 
+  position: relative; 
+}
+
+/* 4. Bản đồ bên phải */
+#map {
+  width: 66.67%;
+  flex-grow: 1; /* Tự động lấp đầy phần còn lại */
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+/* 5. CSS cho trạng thái thu gọn */
+#leftCol.collapsed {
+  width: 0;
+  padding: 0;
+  overflow: hidden; 
+}
+#leftCol.collapsed + #map {
+  width: 100%;
+}
+
+/* 6. CSS cho nút toggle */
+#toggleSidebar {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1001; 
+  cursor: pointer;
+  background: #333;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  width: 30px;
+  height: 30px;
+  font-size: 16px;
+  line-height: 30px;
+  text-align: center;
+}
+/* ================================================= */
+/* === NÂNG CẤP GIAO DIỆN THANH CÔNG CỤ === */
+/* ================================================= */
+
+/* 1. Phông chữ toàn trang */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 2. Nền tối và kiểu dáng cho cột trái */
+#leftCol {
+  background-color: #111827; 
+  border-right: 1px solid #374151; 
+}
+
+#sidebar {
+  background: transparent; 
+  padding: 24px; 
+  /* SỬA LỖI: Đặt màu chữ mặc định cho toàn bộ sidebar */
+  color: #d1d5db; 
+}
+
+/* 3. Cải thiện tiêu đề và nhãn (label) */
+#sidebar h1 {
+  font-size: 1.2rem; 
+  font-weight: 600; 
+  color: #f3f4f6; /* Sáng hơn màu chữ mặc định */
+  margin-top: 0; 
+  margin-bottom: 20px;
+}
+
+#sidebar label {
+  display: block; 
+  font-size: 0.875rem; /* 14px */
+  font-weight: 500;
+  color: #d1d5db; /* Giữ màu này */
+  margin-top: 16px; 
+  margin-bottom: 6px; 
+}
+
+/* 4. "Hiện đại hóa" các ô input và select */
+#sidebar input[type="date"],
+#sidebar input[id="siteName"],
+#sidebar input[placeholder],
+#sidebar select {
+  width: 100%; 
+  background-color: #1f2937; 
+  color: #f3f4f6;
+  border: 1px solid #374151; 
+  border-radius: 8px; 
+  padding: 6px 10px; /* Giữ chiều cao mỏng */
+  font-size: 0.9rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease; 
+}
+
+/* Hiệu ứng khi focus (click vào) */
+#sidebar input:focus,
+#sidebar select:focus {
+  outline: none;
+  border-color: #3b82f6; 
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4); 
+}
+
+/* 5. Cải thiện kiểu dáng nút (Button) */
+#sidebar .btn {
+  background-color: #3b82f6; 
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 12px; /* Giữ chiều cao mỏng */
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  width: 100%; 
+}
+
+#sidebar .btn:hover {
+  background-color: #2563eb; 
+}
+
+#sidebar .btn:disabled {
+  background-color: #374151;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+#sidebar #btnDelete {
+  background-color: #dc2626; 
+}
+#sidebar #btnDelete:hover {
+  background-color: #b91c1c; 
+}
+
+/* 6. Kiểu dáng cho các ".box" (khung quản lý) */
+#sidebar .box {
+  background-color: rgba(31, 41, 55, 0.5); 
+  border: 1px solid #374151;
+  border-radius: 10px;
+  padding: 14px;
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px; 
+}
+
+#sidebar .box b {
+  color: #e5e7eb;
+}
+
+/* ================================================= */
+/* === SỬA LỖI CÁC Ô BỊ DÍNH VÀO NHAU (FIX) === */
+/* ================================================= */
+
+.form-row {
+  display: flex;
+  flex-direction: row; 
+  gap: 10px; /* Khoảng cách ngang */
+}
+
+.form-row > input,
+.form-row > select,
+.form-row > .btn,
+.form-row > button { 
+  flex-grow: 1; 
+  width: auto; 
+}
+
+/* Sửa lỗi cho các nút tưới tiêu trong lifePanel */
+#lifePanel .form-row > button {
+  width: auto; 
+  flex-grow: 0; 
+}
+#lifePanel .form-row > span {
+  flex-grow: 1; 
+}
+
+/* SỬA LỖI: Thêm định nghĩa cho .muted và .small */
+.muted {
+  color: #9ca3af; /* Màu xám nhạt */
+  font-size: 0.875rem;
+}
+.small {
+  font-size: 0.875rem;
+}
+
+
+
+
