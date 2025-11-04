@@ -110,7 +110,7 @@ app.use(express.static('public'));
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID || 'GOOGLE_ID',
     clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'GOOGLE_SECRET',
-    callbackURL: 'http://localhost:3000/auth/google/callback'
+    callbackURL: 'https://happyfarm.dev/auth/google/callback'
 }, (accessToken, refreshToken, profile, done) => done(null, profile)));
 
 passport.serializeUser((user, done) => done(null, user));
