@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NASA SPACE APPS</title>
+
+  <!-- Leaflet & Chart.js (CDN) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <!-- Local CSS -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="wrap">
+  <div id="leftCol">
+    <aside id="sidebar">
+      <div class="container">
+              <h1>Xin chào, <%= displayName %></h1><a href="/logout">Đăng xuất</a>
+          </div>
+      <h1>POWERAGRISIM
+      <div class="muted">Data from NASA POWER</div>
+
+      <div class="row">
+        <div>
+          <label>Day</label>
+          <div class="row">
+            <input type="date" id="start" value="2025-07-01">
+            <input type="date" id="end" value="2025-10-04">
+          </div>
+        </div>
+        <div>
+          <label>Sowing date (GDD from here)</label>
+          <input type="date" id="sow" value="2025-07-10">
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:10px;">
+        <div>
+          <label>Plant</label>
+          <select id="crop">
+            <option value="soy" selected>Soybean</option>
+            <option value="wheat">Wheat</option>
+          </select>
+        </div>
+        <div>
+          <label>Point Name</label>
+          <input id="siteName" value="Point 1"/>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Coordinates</label>
+          <div class="row">
+            <input id="lat" placeholder="Click map to get" readonly>
+            <input id="lon" placeholder="Click map to get" readonly>
+          </div>
+        </div>
+        <div>
+          <label>Quick sample score</label>
+          <select id="preset">
+            <option value="41.9,-93.6">Iowa (Ames)</option>
+            <option value="39.5,-98.35" selected>US Midwest (Kansas)</option>
+            <option value="29.7,-95.4">Texas (Houston)</option>
+            <option value="43.7,-79.4">Ontario (Toronto)</option>
+            <option value="19.4,-99.1">Mexico (CDMX)</option>
+          </select>
+          <button class="btn" id="usePreset">Use sample coordinates</button>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:10px;">
+        <button class="btn" id="btnAdd">➕ Add Plant</button>
+        <button class="btn" id="btnCSV" disabled>Download CSV file</button>
+      </div>
+
+      <div class="box small">
+        <b>Point management</b>
+        <div class="row">
+          <select id="gotoSel"></select>
+          <button class="btn" id="btnGoto">Go to</button>
+          <button class="btn" id="btnDelete">🗑️ Delete Point</button>
+        </div>
+        <div class="muted small">Select point/tree and operate.</div>
+      </div>
+
+      <div class="box small">
+        <b>Jump along <u>stage</u></b>
+        <div class="row">
+          <select id="selSiteForStage"></select>
+          <button class="btn" id="btnPrevStage">◀ Previous stage</button>
+          <button class="btn" id="btnNextStage">Later stage ▶</button>
+        </div>
+        <div class="muted" id="stageStepLabel">—</div>
+      </div>
+
+      <div class="box small">
+        <b>Jump along <u>stage</u> (start on sowing day)</b>
+        <div class="row">
+          <select id="selSiteForDay"></select>
+          <button class="btn" id="btnToSow">⏮ To the day of sowing</button>
+          <button class="btn" id="btnPrevDay">◀ The day before</button>
+          <button class="btn" id="btnNextDay">The next day ▶</button>
+        </div>
+
+        <div id="lifePanel" style="margin-top:10px;padding:8px;border:1px dashed #888;border-radius:8px;background:#15151580">
+          <div style="margin-bottom:6px;">
+            💡 Today's recommendation: <b id="recBadge">?</b>
+            <span id="recExplain" style="opacity:.8;font-size:.9em;margin-left:6px;"></span>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;">
+            <button id="btnIrrigate" disabled>💧 Watering today</button>
+            <button id="btnNoIrrigate" disabled>🚫 No watering</button>
+            <button id="btnDayAfter">⏭️ The day after</button>
+            <span id="actionLabel" style="margin-left:6px;opacity:.9;"></span>
+          </div>
+          <div>
+            ❤️ Tree life: <b id="lifeLabel">100%</b>
+            <div id="lifeBar" style="height:8px;background:#333;border-radius:4px;overflow:hidden;margin-top:4px;">
+              <div id="lifeFill" style="height:8px;width:100%;background:#22c55e;"></div>
+            </div>
+            <div id="lifeStageLabel" style="font-size:.9em;opacity:.85;margin-top:4px;"></div>
+          </div>
+        </div>
+
+        <div class="muted" id="dayStepLabel">—</div>
+      </div>
+    </aside>
+
+    <section id="charts">
+      <div id="chartWrap"><div class="chartTitle">Temperature and Precipitation Chart</div><canvas id="chart"></canvas></div>
+      <div id="chartWrap2"><div class="chartTitle">RH & Soil Moisture Chart</div><canvas id="chart2"></canvas></div>
+    </section>
+  </div>
+
+  <main id="map"></main>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const leftCol = document.getElementById('leftCol');
+
+        // Tạo nút toggle động
+        const toggleBtn = document.createElement('button');
+        toggleBtn.id = 'toggleSidebar';
+        toggleBtn.innerHTML = '☰';
+        leftCol.appendChild(toggleBtn);
+
+        toggleBtn.addEventListener('click', () => {
+            leftCol.classList.toggle('collapsed');
+            toggleBtn.innerHTML = leftCol.classList.contains('collapsed') ? '☰' : '×';
+        });
+    });
+</script>
+
+<!-- Modules (thứ tự quan trọng) -->
+<script src="js/crops.js"></script>
+<script src="js/map.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/life.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

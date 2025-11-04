@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Reset password</title>
+  <link rel="stylesheet" href="/css/login.css" />
+</head>
+
+<body class="login-page">
+  <div class="login-card">
+    <h1 class="login-title">Reset Password</h1>
+    <div id="flash" class="flash" style="display:none"></div>
+
+    <form id="reset-form" autocomplete="on" novalidate>
+      <div class="login-input-group">
+        <label for="identifier">Email or Username</label>
+        <input id="identifier" name="identifier" type="text" placeholder="you@example.com hoặc your_username"
+          required />
+      </div>
+
+      <div class="login-input-group">
+        <label for="code">OTP code (6 digits)</label>
+        <input id="code" name="code" type="text" inputmode="numeric" maxlength="6" placeholder="123456" required />
+      </div>
+
+      <div class="login-input-group">
+        <label for="newPassword">New password</label>
+        <div class="password-wrap">
+          <input id="newPassword" name="newPassword" type="password" placeholder="********" required
+            autocomplete="new-password" minlength="6" />
+          <button type="button" class="pw-toggle" onclick="togglePw()">👁</button>
+        </div>
+        <small class="hint">Minimum 6 characters.</small>
+      </div>
+
+      <button type="submit" class="login-btn" id="btnReset">Update Password</button>
+    </form>
+
+    <div class="login-links" style="margin-top:14px">
+      <a href="/login">Back to Login</a>
+    </div>
+  </div>
+
+  <script>
+    function togglePw() {
+      const pw = document.getElementById('newPassword');
+      pw.type = pw.type === 'password' ? 'text' : 'password';
+    }
+
+    // Prefill identifier: ưu tiên ?email=..., nếu không có thì dùng localStorage.lastIdentifier
+    (function prefillIdentifier() {
+      const el = document.getElementById('identifier');
+      const params = new URL(location.href).searchParams;
+      const qmail = params.get('email');
+      if (qmail) {
+        el.value = qmail;
+        try { localStorage.setItem('lastIdentifier', qmail); } catch { }
+      } else {
+        try {
+          const last = localStorage.getItem('lastIdentifier');
+          if (last && !el.value) el.value = last;
+        } catch { }
+      }
+    })();
+
+    let submitting = false;
+
+    document.getElementById('reset-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (submitting) return;
+      submitting = true;
+
+      const btn = document.getElementById('btnReset');
+      btn.disabled = true;
+
+      const identifier = document.getElementById('identifier').value.trim();
+      const code = document.getElementById('code').value.replace(/\s/g, '').trim(); // bỏ mọi khoảng trắng
+      const newPassword = document.getElementById('newPassword').value;
+
+      // Nhớ lại identifier để /login tự fill
+      try { localStorage.setItem('lastIdentifier', identifier); } catch { }
+
+      try {
+        const res = await fetch('/reset', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ identifier, code, newPassword })
+        });
+
+        const ct = res.headers.get('content-type') || '';
+        if (!ct.includes('application/json')) {
+          // Fallback nếu server trả HTML
+          window.location.href = '/login';
+          return;
+        }
+
+        const data = await res.json();
+        const flash = document.getElementById('flash');
+        flash.style.display = 'block';
+        flash.textContent = data.message || (data.success ? 'Password changed successfully' : 'Đổi mật khẩu thất bại');
+
+        if (data.success) {
+          // quay về login, để login.html auto-fill + focus password
+          setTimeout(() => {
+            window.location.href = `/login?registered=1&u=${encodeURIComponent(identifier)}`;
+          }, 1200);
+        }
+      } catch (err) {
+        const flash = document.getElementById('flash');
+        flash.style.display = 'block';
+        flash.textContent = 'Request failed.Please try again.';
+      } finally {
+        submitting = false;
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+
+</html>

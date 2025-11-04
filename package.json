@@ -1,0 +1,21 @@
+{
+  "name": "nasa",
+  "version": "1.0.0",
+  "description": "> A lightweight, client‑side web app for exploring crop phenology (GDD stages), weather/soil moisture, and simple irrigation recommendations — designed for the NASA Space Apps Challenge.",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "ejs": "^3.1.10",
+    "express": "^5.1.0",
+    "express-session": "^1.18.2",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0"
+  }
+}

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Forgot password</title>
+  <link rel="stylesheet" href="/css/login.css">
+</head>
+
+<body class="auth-bg forgot-page">
+  <div class="login-card">
+    <h1 class="login-title">Forgot Password</h1>
+    <div id="flash" class="flash" style="display:none"></div>
+
+    <form id="forgot-form">
+      <div class="login-input-group">
+        <label for="identifier">Email or Username</label>
+        <input id="identifier" name="identifier" type="text" placeholder="you@example.com or your_username" required>
+      </div>
+      <button type="submit" class="login-btn">Send OTP</button>
+    </form>
+
+    <div class="login-links" style="margin-top:14px">
+      <a href="/login">Back to Login</a>
+      <a href="/register">Create Account</a>
+    </div>
+  </div>
+
+  <script>
+    // Prefill từ localStorage (tài khoản dùng gần nhất)
+    (function () {
+      try {
+        const last = localStorage.getItem('lastIdentifier');
+        if (last) {
+          const el = document.getElementById('identifier');
+          if (el && !el.value) el.value = last;
+        }
+      } catch { }
+    })();
+
+    document.getElementById('forgot-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const identifier = document.getElementById('identifier').value.trim();
+
+      // Nhớ lại để /reset tự có sẵn
+      try { localStorage.setItem('lastIdentifier', identifier); } catch { }
+
+      try {
+        const res = await fetch('/forgot', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ identifier })   // <-- server nhận identifier (email hoặc username)
+        });
+
+        // Nếu server trả HTML (unexpected) thì chuyển sang /reset
+        const ct = res.headers.get('content-type') || '';
+        if (!ct.includes('application/json')) {
+          location.href = '/reset';
+          return;
+        }
+
+        const data = await res.json();
+        const flash = document.getElementById('flash');
+        flash.style.display = 'block';
+        flash.textContent = data.message || 'If the account exists, the code has been sent.';
+
+        // Gợi ý đi thẳng tới /reset
+        const a = document.createElement('div');
+        a.style.marginTop = '8px';
+        a.innerHTML = `➡️ <a href="/reset?email=${encodeURIComponent(identifier)}">Go to the password reset page</a>`;
+        flash.appendChild(a);
+      } catch (err) {
+        const flash = document.getElementById('flash');
+        flash.style.display = 'block';
+        flash.textContent = 'Request failed.Please try again.';
+      }
+    });
+  </script>
+</body>
+
+</html>

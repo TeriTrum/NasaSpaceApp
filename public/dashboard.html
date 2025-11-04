@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NASA SPACE APPS</title>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="wrap">
+  <div id="leftCol">
+    <aside id="sidebar">
+      <h1>Xin chào, <%= displayName %></h1>
+      <h1>POWERAGRISIM</h1>
+      <div class="muted">Data from NASA POWER</div>
+
+      <div>
+        <label>Day</label>
+        <div class="form-row">
+          <input type="date" id="start" value="2025-07-01">
+          <input type="date" id="end" value="2025-10-04">
+        </div>
+      </div>
+      <div>
+        <label>Sowing date (GDD from here)</label>
+        <input type="date" id="sow" value="2025-07-10">
+      </div>
+
+      <div class="form-row" style="margin-top:10px;">
+        <div>
+          <label>Plant</label>
+          <select id="crop">
+            <option value="soy" selected>Soybean</option>
+            <option value="wheat">Wheat</option>
+          </select>
+        </div>
+        <div>
+          <label>Point Name</label>
+          <input id="siteName" placeholder="Tên cây (mặc định: Point 1)"/>
+        </div>
+      </div>
+
+      <div>
+        <label>Coordinates</label>
+        <div class="form-row">
+          <input id="lat" placeholder="Click map to get" readonly>
+          <input id="lon" placeholder="Click map to get" readonly>
+        </div>
+      </div>
+      <div>
+        <label>Quick sample score</label>
+        <div class="form-row">
+          <select id="preset">
+            <option value="41.9,-93.6">Iowa (Ames)</option>
+            <option value="39.5,-98.35" selected>US Midwest (Kansas)</option>
+            <option value="29.7,-95.4">Texas (Houston)</option>
+            <option value="43.7,-79.4">Ontario (Toronto)</option>
+            <option value="19.4,-99.1">Mexico (CDMX)</option>
+          </select>
+          <button class="btn" id="usePreset">Use sample coordinates</button>
+        </div>
+      </div>
+
+      <div class="form-row" style="margin-top:10px;">
+        <button class="btn" id="btnAdd">➕ Add Plant</button>
+        <button class="btn" id="btnCSV" disabled>Download CSV file</button>
+      </div>
+
+      <div class="box small">
+        <b>Point management</b>
+        <div class="form-row">
+          <select id="gotoSel"></select>
+          <button class="btn" id="btnGoto">Go to</button>
+          <button class="btn" id="btnDelete">🗑️ Delete Point</button>
+        </div>
+        <div class="muted small">Select point/tree and operate.</div>
+      </div>
+      <div class="box small">
+        <b>Jump along <u>stage</u> (start on sowing day)</b>
+        <div class="form-row">
+          <select id="selSiteForDay"></select>
+          <button class="btn" id="btnPrevDay">◀ The day before</button>
+          <button class="btn" id="btnNextDay">The next day ▶</button>
+        </div>
+
+        <div id="lifePanel" style="margin-top:10px;padding:8px;border:1px dashed #888;border-radius:8px;background:#15151580">
+          <div style="margin-bottom:6px;">
+            💡 Today's recommendation: <b id="recBadge">?</b>
+            <span id="recExplain" style="opacity:.8;font-size:.9em;margin-left:6px;"></span>
+          </div>
+          <div class="form-row" style="display:flex;gap:6px;align-items:center;margin-bottom:8px;">
+            <button id="btnIrrigate" disabled>💧 Watering today</button>
+            <button id="btnNoIrrigate" disabled>🚫 No watering</button>
+            <span id="actionLabel" style="margin-left:6px;opacity:.9;"></span>
+          </div>
+          <div>
+            ❤️ Tree life: <b id="lifeLabel">100%</b>
+            <div id="lifeBar" style="height:8px;background:#333;border-radius:4px;overflow:hidden;margin-top:4px;">
+              <div id="lifeFill" style="height:8px;width:100%;background:#22c55e;"></div>
+            </div>
+            <div id="lifeStageLabel" style="font-size:.9em;opacity:.85;margin-top:4px;"></div>
+          </div>
+        </div>
+
+        <div class="muted" id="dayStepLabel">—</div>
+      </div>
+    </aside>
+
+    <section id="charts">
+      <div id="chartWrap"><div class="chartTitle">Temperature and Precipitation Chart</div><canvas id="chart"></canvas></div>
+      <div id="chartWrap2"><div class="chartTitle">RH & Soil Moisture Chart</div><canvas id="chart2"></canvas></div>
+    </section>
+  </div>
+
+  <main id="map"></main>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const leftCol = document.getElementById('leftCol');
+
+        // Tạo nút toggle động
+        const toggleBtn = document.createElement('button');
+        toggleBtn.id = 'toggleSidebar';
+        // Ban đầu thanh MỞ, nên nút hiển thị '×' (để Đóng)
+        toggleBtn.innerHTML = '×'; 
+        
+        // SỬA LỖI: Nối nút vào #wrap (cha) thay vì #leftCol (con)
+        document.getElementById('wrap').appendChild(toggleBtn); 
+
+        // Cập nhật CSS cho nút (vì nó đã bị di chuyển)
+        toggleBtn.style.position = 'absolute';
+        
+        // --- SỬA LỖI CHÈN NÚT ---
+        // Di chuyển nút xuống 70px để tránh nút Zoom
+        toggleBtn.style.top = '140px'; 
+        // --- KẾT THÚC SỬA LỖI ---
+
+        toggleBtn.style.left = 'calc(33.33% + 10px)'; // Vị trí ban đầu
+        toggleBtn.style.zIndex = '1001';
+        toggleBtn.style.transition = 'left 0.3s ease, top 0.3s ease'; // Thêm hiệu ứng di chuyển
+
+        // CSS bổ sung cho nút (từ style.css)
+        toggleBtn.style.background = '#333';
+        toggleBtn.style.color = 'white';
+        toggleBtn.style.border = 'none';
+        toggleBtn.style.borderRadius = '4px';
+        toggleBtn.style.width = '30px';
+        toggleBtn.style.height = '30px';
+        toggleBtn.style.fontSize = '16px';
+        toggleBtn.style.lineHeight = '30px';
+        toggleBtn.style.textAlign = 'center';
+        toggleBtn.style.cursor = 'pointer';
+
+        toggleBtn.addEventListener('click', () => {
+            leftCol.classList.toggle('collapsed');
+            
+            // Cập nhật icon VÀ VỊ TRÍ của nút
+            if (leftCol.classList.contains('collapsed')) {
+                toggleBtn.innerHTML = '☰'; // Thu gọn, hiển thị '☰' (để Mở)
+                toggleBtn.style.left = '10px'; // Di chuyển nút về sát lề trái
+            } else {
+                toggleBtn.innerHTML = '×'; // Mở rộng, hiển thị '×' (để Đóng)
+                toggleBtn.style.left = 'calc(33.33% + 10px)'; // Trả nút về vị trí cũ
+            }
+
+            // --- SỬA LỖI BẢN ĐỒ BỊ KHUYẾT ---
+            // Báo cho Leaflet cập nhật kích thước sau khi transition (300ms) kết thúc
+            setTimeout(() => {
+                // Đảm bảo P.map đã được khởi tạo
+                if (window.POWER && window.POWER.map) {
+                    window.POWER.map.invalidateSize();
+                }
+            }, 310); // 310ms > 300ms transition
+            // --- KẾT THÚC SỬA LỖI ---
+        });
+    });
+</script>
+
+<script src="js/crops.js"></script>
+<script src="js/map.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/life.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
